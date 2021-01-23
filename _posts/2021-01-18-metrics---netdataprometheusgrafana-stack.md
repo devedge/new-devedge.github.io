@@ -78,6 +78,61 @@ prometheus
 add docker-compose config
 introduce yml, explain that it will be used for the next 2 containers
 
+`docker-compose.yml`
+
+```yaml
+version: "3"
+services:
+  prometheus:
+    build: prometheus/
+    restart: unless-stopped
+    command:
+      # Default CLI options to start Prometheus, taken from the container. Docker-Compose's
+      # `command:` directive overwrites any CLI args, so if we want to use the directive, all
+      # the args need to be redefined.
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.console.libraries=/usr/share/prometheus/console_libraries
+      - --web.console.templates=/usr/share/prometheus/consoles
+
+      # Max metrics retention time set to one year
+      - --storage.tsdb.retention.time=1y
+    ports:
+      - 9090:9090
+    volumes:
+      - prometheus-config:/fragments/
+      - "/mnt/nas-share/Prometheus:/prometheus:rw" # Metrics are stored on NAS
+      - "/etc/localtime:/etc/localtime:ro"
+# ...
+```
+
+`Dockerfile`
+
+```Dockerfile
+FROM prom/prometheus:v2.22.0
+ADD prometheus.yml /etc/prometheus/prometheus.yml
+```
+
+`prometheus.yml`
+
+```yaml
+global:
+  # Set the scrape interval to every 15 seconds. Default is every 1 minute.
+  scrape_interval: 15s
+  # Evaluate rules every 15 seconds. The default is every 1 minute.
+  evaluation_interval: 15s
+
+# A scrape configuration containing exactly one endpoint to scrape:
+# Here it's Prometheus itself.
+scrape_configs:
+  - job_name: "prometheus"
+    # metrics_path defaults to '/metrics'
+    # scheme defaults to 'http'.
+    static_configs:
+      - targets: ["0.0.0.0:9090"]
+# ...
+```
+
 netdata
 don't cover installing it
 show how it's added to the prometheus yml
